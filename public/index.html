@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ApowerFilipe</title>
+<style>
+  :root {
+    --bg: #e9eef1;
+    --panel: #ffffff;
+    --ink: #14202b;
+    --muted: #5d6c78;
+    --line: #d5dde2;
+    --row-hover: #f3f7f9;
+    --accent: #0e7c66;
+    --accent-ink: #ffffff;
+    --danger: #b3382c;
+    --on: #1f9d55;
+    --off: #9aa6af;
+    --focus: #1b6fd1;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #11181d;
+      --panel: #19232a;
+      --ink: #e6edf1;
+      --muted: #93a2ad;
+      --line: #2b3a44;
+      --row-hover: #1f2b33;
+      --accent: #2bb394;
+      --accent-ink: #07241d;
+      --danger: #ef7d70;
+      --on: #3ccf7e;
+      --off: #6b7a85;
+      --focus: #6aa8ff;
+      color-scheme: dark;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.45 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    padding: 28px clamp(14px, 4vw, 48px) 48px;
+  }
+
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+  header {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px;
+    margin-bottom: 20px;
+  }
+  h1 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); font-size: 14px; }
+  .conn { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 13px; margin-left: auto; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--off); flex: none; }
+  .dot.on { background: var(--on); }
+
+  .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+  .toolbar .grow { flex: 1 1 220px; }
+  input[type="search"], input[type="text"], input[type="number"], select {
+    width: 100%; padding: 8px 10px; font: inherit; color: var(--ink);
+    background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+  }
+  input:disabled, select:disabled { opacity: .55; }
+
+  button {
+    font: inherit; cursor: pointer; padding: 7px 13px; border-radius: 6px;
+    border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  }
+  button:hover { background: var(--row-hover); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  button.primary:hover { filter: brightness(1.08); }
+  button.danger { color: var(--danger); }
+  button.small { padding: 5px 10px; font-size: 14px; }
+  button:disabled { opacity: .5; cursor: default; }
+
+  .table-wrap {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    overflow-x: auto;
+  }
+  table { width: 100%; border-collapse: collapse; min-width: 820px; }
+  th, td { padding: 11px 14px; text-align: left; vertical-align: middle; }
+  th { font-weight: 600; font-size: 13px; color: var(--muted); border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td { border-bottom: 1px solid var(--line); }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr:hover { background: var(--row-hover); }
+  tr.offline .name, tr.offline .num { color: var(--muted); }
+  .name { font-weight: 600; }
+  .model { color: var(--muted); font-size: 13px; }
+  .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .status { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .actions { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: nowrap; }
+  th.r { text-align: right; }
+  .empty { padding: 36px 14px; text-align: center; color: var(--muted); }
+
+  .summary { margin: 12px 2px 0; color: var(--muted); font-size: 13px; }
+
+  details.log { margin-top: 22px; }
+  details.log summary { cursor: pointer; font-weight: 600; }
+  details.log ol { list-style: none; margin: 10px 0 0; padding: 0; max-height: 260px; overflow-y: auto;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+  details.log li { display: flex; gap: 14px; padding: 7px 14px; border-bottom: 1px solid var(--line); font-size: 14px; }
+  details.log li:last-child { border-bottom: 0; }
+  details.log time { color: var(--muted); font-variant-numeric: tabular-nums; flex: none; }
+
+  dialog {
+    width: min(560px, calc(100vw - 24px)); max-height: calc(100vh - 24px);
+    padding: 0; border: 1px solid var(--line); border-radius: 12px;
+    background: var(--panel); color: var(--ink);
+  }
+  dialog::backdrop { background: rgba(10, 18, 24, .55); }
+  dialog form { display: flex; flex-direction: column; max-height: calc(100vh - 26px); }
+  .d-head { padding: 18px 22px 8px; }
+  .d-head h2 { margin: 0; font-size: 19px; }
+  .d-body { padding: 8px 22px 12px; overflow-y: auto; display: grid; gap: 14px; }
+  .d-foot { padding: 14px 22px 18px; display: flex; gap: 8px; justify-content: flex-end; border-top: 1px solid var(--line); }
+  label.f { display: grid; gap: 4px; font-size: 14px; }
+  label.f > span { color: var(--muted); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  fieldset { border: 1px solid var(--line); border-radius: 8px; margin: 0; padding: 12px 14px 14px; display: grid; gap: 12px; }
+  fieldset legend { padding: 0 6px; color: var(--muted); font-size: 14px; }
+  .range { display: grid; grid-template-columns: 1fr 3.2em; gap: 10px; align-items: center; }
+  .range input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .range output { text-align: right; font-variant-numeric: tabular-nums; }
+  .check { display: flex; align-items: center; gap: 9px; font-size: 14px; }
+  .check input { width: 17px; height: 17px; accent-color: var(--accent); }
+  .hint { color: var(--muted); font-size: 13px; }
+  .invokes { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  #toasts { position: fixed; right: 16px; bottom: 16px; display: grid; gap: 8px; z-index: 50; max-width: min(380px, calc(100vw - 32px)); }
+  .toast { background: var(--ink); color: var(--bg); padding: 10px 14px; border-radius: 8px; font-size: 14px; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+  .toast.err { background: var(--danger); color: #fff; }
+
+  @media (max-width: 560px) { .grid2 { grid-template-columns: 1fr; } }
+  @media (prefers-reduced-motion: no-preference) { button { transition: background .12s, filter .12s; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>ApowerFilipe</h1>
+    <div class="sub">Periféricos ligados a este computador</div>
+  </div>
+  <div class="conn" role="status"><span class="dot" id="connDot"></span><span id="connText">A ligar…</span></div>
+</header>
+
+<div class="toolbar">
+  <div class="grow"><input type="search" id="filter" placeholder="Pesquisar por nome, tipo, modelo ou endereço" aria-label="Pesquisar"></div>
+  <button class="primary" id="btnAdd">Adicionar dispositivo</button>
+  <button id="btnAllOn" title="Marca todos os dispositivos como ligados">Ligar todos</button>
+  <button id="btnDetect" title="Volta a procurar áudio, brilho e impressoras do Windows">Detetar hardware</button>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Dispositivo</th>
+        <th>Tipo</th>
+        <th>Endereço</th>
+        <th>Latência</th>
+        <th>Bateria</th>
+        <th>Estado</th>
+        <th class="r">Ações</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <div class="empty" id="empty" hidden></div>
+</div>
+<div class="summary" id="summary"></div>
+
+<details class="log">
+  <summary>Registo de atividade</summary>
+  <ol id="log"></ol>
+</details>
+
+<!-- Adicionar -->
+<dialog id="addDlg" aria-labelledby="addTitle">
+  <form method="dialog" id="addForm">
+    <div class="d-head"><h2 id="addTitle">Adicionar dispositivo</h2></div>
+    <div class="d-body">
+      <label class="f"><span>Tipo</span><select id="addType"></select></label>
+      <label class="f"><span>Nome</span><input type="text" id="addName" maxlength="60" required></label>
+      <div class="grid2">
+        <label class="f"><span>Modelo</span><input type="text" id="addModel" maxlength="60"></label>
+        <label class="f"><span>Endereço (IP ou porta)</span><input type="text" id="addIp" maxlength="64"></label>
+      </div>
+    </div>
+    <div class="d-foot">
+      <button type="button" data-close>Cancelar</button>
+      <button type="submit" class="primary">Adicionar</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Editar -->
+<dialog id="editDlg" aria-labelledby="editTitle">
+  <form method="dialog" id="editForm">
+    <div class="d-head"><h2 id="editTitle">Editar dispositivo</h2></div>
+    <div class="d-body" id="editBody"></div>
+    <div class="d-foot">
+      <button type="button" data-close>Cancelar</button>
+      <button type="submit" class="primary">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Remover -->
+<dialog id="delDlg" aria-labelledby="delTitle">
+  <form method="dialog" id="delForm">
+    <div class="d-head"><h2 id="delTitle">Remover dispositivo</h2></div>
+    <div class="d-body"><p id="delText" style="margin:0"></p><p class="hint" id="delHint" style="margin:0"></p></div>
+    <div class="d-foot">
+      <button type="button" data-close>Cancelar</button>
+      <button type="submit" class="primary" style="background:var(--danger);border-color:var(--danger);color:#fff">Remover</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toasts" aria-live="polite"></div>
+
+<script>
+"use strict";
+
+const LABELS = {
+  dpi: "DPI", vol: "Volume", profile: "Perfil", rgb: "Iluminação RGB", silent: "Cliques silenciosos",
+  brightness: "Brilho", layout: "Disposição do teclado", gameMode: "Modo de jogo",
+  bass: "Graves", treble: "Agudos", eq: "Equalizador", mute: "Sem som (mute)",
+  quality: "Qualidade", paper: "Papel", eco: "Modo económico", duplex: "Frente e verso",
+  contrast: "Contraste", res: "Resolução", hdr: "HDR", eye: "Conforto visual",
+  fps: "Fotogramas por segundo", mirror: "Espelhar imagem", autoLight: "Luz automática"
+};
+const INVOKE_LABELS = {
+  restart: "Reiniciar", test: "Imprimir página de teste", capture: "Capturar imagem", macro: "Gravar macro"
+};
+
+let state = { devices: [], log: [], spec: {}, batteryTypes: [] };
+let ws = null;
+let retry = 0;
+let editingId = null;
+let removingId = null;
+
+const $ = (id) => document.getElementById(id);
+const rowsEl = $("rows");
+const rowCache = new Map();
+
+/* ---------- Ligação ---------- */
+function connect() {
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  ws = new WebSocket(proto + "://" + location.host + "/ws");
+
+  ws.onopen = () => { retry = 0; setConn(true); };
+  ws.onclose = () => {
+    setConn(false);
+    retry = Math.min(retry + 1, 6);
+    setTimeout(connect, 600 * retry);
+  };
+  ws.onmessage = (ev) => {
+    let msg;
+    try { msg = JSON.parse(ev.data); } catch (e) { return; }
+    if (msg.type === "state") {
+      state = msg;
+      render();
+    } else if (msg.type === "error") {
+      toast(msg.error, true);
+    }
+  };
+}
+
+function setConn(on) {
+  $("connDot").classList.toggle("on", on);
+  $("connText").textContent = on ? "Ligado ao agente" : "Sem ligação — a tentar de novo…";
+}
+
+function send(obj) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) { toast("Sem ligação ao agente.", true); return false; }
+  ws.send(JSON.stringify(obj));
+  return true;
+}
+const command = (deviceId, action, extra) => send(Object.assign({ type: "command", deviceId, action }, extra || {}));
+
+function toast(text, isErr) {
+  const el = document.createElement("div");
+  el.className = "toast" + (isErr ? " err" : "");
+  el.textContent = text;
+  $("toasts").appendChild(el);
+  setTimeout(() => el.remove(), isErr ? 6000 : 3000);
+}
+
+/* ---------- Tabela ---------- */
+function typeLabel(type) { return (state.spec[type] && state.spec[type].label) || type; }
+
+function matches(d, q) {
+  if (!q) return true;
+  return [d.name, d.model, d.ip, typeLabel(d.type)].join(" ").toLowerCase().includes(q);
+}
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+
+function buildRow(d) {
+  const tr = el("tr", d.online ? "" : "offline");
+  tr.dataset.id = d.id;
+
+  const tdName = el("td");
+  tdName.append(el("div", "name", d.name));
+  if (d.model) tdName.append(el("div", "model", d.model + (d.hw ? " · hardware real" : "")));
+  else if (d.hw) tdName.append(el("div", "model", "hardware real"));
+  tr.append(tdName);
+
+  tr.append(el("td", "", typeLabel(d.type)));
+  tr.append(el("td", "num", d.ip || "—"));
+
+  const lat = el("td", "num lat", d.online ? d.latency + " ms" : "—");
+  tr.append(lat);
+
+  tr.append(el("td", "num", d.battery == null ? "—" : d.battery + "%"));
+
+  const tdSt = el("td");
+  const st = el("span", "status");
+  st.append(el("span", "dot" + (d.online ? " on" : "")), document.createTextNode(d.online ? "Ligado" : "Desligado"));
+  tdSt.append(st);
+  tr.append(tdSt);
+
+  const tdAct = el("td");
+  const act = el("div", "actions");
+  const toggle = el("button", "small" + (d.online ? "" : " primary"), d.online ? "Desligar" : "Ligar");
+  toggle.dataset.act = d.online ? "disconnect" : "connect";
+  toggle.setAttribute("aria-label", (d.online ? "Desligar " : "Ligar ") + d.name);
+  const edit = el("button", "small", "Editar");
+  edit.dataset.act = "edit";
+  edit.setAttribute("aria-label", "Editar " + d.name);
+  const del = el("button", "small danger", "Remover");
+  del.dataset.act = "remove";
+  del.setAttribute("aria-label", "Remover " + d.name);
+  act.append(toggle, edit, del);
+  tdAct.append(act);
+  tr.append(tdAct);
+  return tr;
+}
+
+function render() {
+  const q = $("filter").value.trim().toLowerCase();
+  const list = state.devices.filter((d) => matches(d, q));
+  const seen = new Set();
+
+  list.forEach((d, i) => {
+    seen.add(d.id);
+    const sig = JSON.stringify([d.name, d.model, d.ip, d.type, d.battery, d.online, d.hw]);
+    let entry = rowCache.get(d.id);
+
+    if (!entry || entry.sig !== sig) {
+      const tr = buildRow(d);
+      if (entry) entry.tr.replaceWith(tr);
+      entry = { tr, sig };
+      rowCache.set(d.id, entry);
+    } else {
+      // Só a latência muda a cada 5 s: atualiza o texto sem recriar a linha
+      const cell = entry.tr.querySelector(".lat");
+      const txt = d.online ? d.latency + " ms" : "—";
+      if (cell && cell.textContent !== txt) cell.textContent = txt;
+    }
+
+    if (rowsEl.children[i] !== entry.tr) rowsEl.insertBefore(entry.tr, rowsEl.children[i] || null);
+  });
+
+  for (const [id, entry] of rowCache) {
+    if (!seen.has(id)) { entry.tr.remove(); rowCache.delete(id); }
+  }
+
+  const empty = $("empty");
+  empty.hidden = list.length > 0;
+  if (!list.length) empty.textContent = state.devices.length ? "Nenhum dispositivo corresponde à pesquisa." : "Ainda não há dispositivos. Usa “Adicionar dispositivo”.";
+
+  const on = state.devices.filter((d) => d.online).length;
+  $("summary").textContent = state.devices.length
+    ? on + " de " + state.devices.length + " dispositivos ligados"
+    : "";
+
+  renderLog();
+}
+
+let lastLogKey = "";
+function renderLog() {
+  const key = state.log.length + "|" + (state.log[0] && state.log[0].t);
+  if (key === lastLogKey) return;
+  lastLogKey = key;
+  const ol = $("log");
+  ol.textContent = "";
+  state.log.forEach((e) => {
+    const li = el("li");
+    const t = el("time", "", new Date(e.t).toLocaleTimeString("pt-PT"));
+    t.dateTime = e.t;
+    li.append(t, el("span", "", e.msg));
+    ol.append(li);
+  });
+}
+
+rowsEl.addEventListener("click", (ev) => {
+  const btn = ev.target.closest("button[data-act]");
+  if (!btn) return;
+  const id = btn.closest("tr").dataset.id;
+  const dev = state.devices.find((d) => d.id === id);
+  if (!dev) return;
+
+  if (btn.dataset.act === "connect" || btn.dataset.act === "disconnect") command(id, btn.dataset.act);
+  else if (btn.dataset.act === "edit") openEdit(dev);
+  else if (btn.dataset.act === "remove") openRemove(dev);
+});
+
+$("filter").addEventListener("input", render);
+$("btnAllOn").addEventListener("click", () => send({ type: "sync" }));
+$("btnDetect").addEventListener("click", () => { if (send({ type: "redetect" })) toast("A procurar hardware… pode demorar alguns segundos."); });
+
+document.querySelectorAll("dialog [data-close]").forEach((b) =>
+  b.addEventListener("click", () => b.closest("dialog").close()));
+
+/* ---------- Adicionar ---------- */
+$("btnAdd").addEventListener("click", () => {
+  const sel = $("addType");
+  sel.textContent = "";
+  Object.keys(state.spec).forEach((t) => {
+    const o = el("option", "", state.spec[t].label);
+    o.value = t;
+    sel.append(o);
+  });
+  $("addForm").reset();
+  $("addDlg").showModal();
+  $("addName").focus();
+});
+
+$("addForm").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  const name = $("addName").value.trim();
+  if (!name) { $("addName").focus(); return; }
+  if (send({
+    type: "command", action: "add",
+    deviceType: $("addType").value,
+    name, model: $("addModel").value, ip: $("addIp").value
+  })) {
+    $("addDlg").close();
+    toast("Dispositivo adicionado.");
+  }
+});
+
+/* ---------- Editar ---------- */
+function field(labelText, input) {
+  const l = el("label", "f");
+  l.append(el("span", "", labelText), input);
+  return l;
+}
+function textInput(name, value, max) {
+  const i = el("input");
+  i.type = "text"; i.name = name; i.value = value || ""; i.maxLength = max;
+  return i;
+}
+
+function openEdit(dev) {
+  editingId = dev.id;
+  const spec = state.spec[dev.type];
+  const body = $("editBody");
+  body.textContent = "";
+  $("editTitle").textContent = "Editar " + dev.name;
+
+  const name = textInput("name", dev.name, 60);
+  name.required = true;
+  body.append(field("Nome", name));
+
+  const g = el("div", "grid2");
+  g.append(field("Modelo", textInput("model", dev.model, 60)), field("Endereço (IP ou porta)", textInput("ip", dev.ip, 64)));
+  body.append(g);
+
+  if (state.batteryTypes.includes(dev.type)) {
+    const b = el("input");
+    b.type = "number"; b.name = "battery"; b.min = 0; b.max = 100;
+    b.value = dev.battery == null ? "" : dev.battery;
+    body.append(field("Bateria (%)", b));
+  }
+
+  if (spec) {
+    const fs = el("fieldset");
+    fs.disabled = !dev.online;
+    fs.append(el("legend", "", "Definições"));
+
+    Object.keys(spec.ranges).forEach((k) => {
+      const [min, max] = spec.ranges[k];
+      const wrap = el("label", "f");
+      wrap.append(el("span", "", LABELS[k] || k));
+      const row = el("div", "range");
+      const r = el("input");
+      r.type = "range"; r.min = min; r.max = max; r.value = dev.values[k]; r.dataset.key = k; r.dataset.kind = "range";
+      const out = el("output", "", String(dev.values[k]));
+      r.addEventListener("input", () => { out.textContent = r.value; });
+      row.append(r, out);
+      wrap.append(row);
+      fs.append(wrap);
+    });
+
+    Object.keys(spec.enums).forEach((k) => {
+      const s = el("select");
+      s.dataset.key = k; s.dataset.kind = "enum";
+      spec.enums[k].forEach((opt) => {
+        const o = el("option", "", opt);
+        o.value = opt;
+        if (dev.values[k] === opt) o.selected = true;
+        s.append(o);
+      });
+      fs.append(field(LABELS[k] || k, s));
+    });
+
+    spec.bools.forEach((k) => {
+      const l = el("label", "check");
+      const c = el("input");
+      c.type = "checkbox"; c.checked = Boolean(dev.values[k]); c.dataset.key = k; c.dataset.kind = "bool";
+      l.append(c, document.createTextNode(LABELS[k] || k));
+      fs.append(l);
+    });
+
+    body.append(fs);
+    if (!dev.online) body.append(el("p", "hint", "Liga o dispositivo para poderes alterar as definições."));
+    else if (dev.hw) body.append(el("p", "hint", "Volume, mute ou brilho deste dispositivo são aplicados no Windows."));
+
+    if (dev.online && spec.invokes.length) {
+      const box = el("div", "invokes");
+      spec.invokes.forEach((k) => {
+        const b = el("button", "small", INVOKE_LABELS[k] || k);
+        b.type = "button";
+        b.addEventListener("click", () => command(dev.id, "invoke", { key: k }));
+        box.append(b);
+      });
+      body.append(box);
+    }
+  }
+
+  $("editDlg").showModal();
+}
+
+$("editForm").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  const dev = state.devices.find((d) => d.id === editingId);
+  if (!dev) { $("editDlg").close(); return; }
+
+  const body = $("editBody");
+  const get = (n) => { const e = body.querySelector('[name="' + n + '"]'); return e ? e.value : undefined; };
+
+  const name = (get("name") || "").trim();
+  if (!name) { body.querySelector('[name="name"]').focus(); return; }
+
+  const payload = { name, model: get("model"), ip: get("ip") };
+  const bat = get("battery");
+  if (bat !== undefined) payload.battery = bat;
+
+  if (dev.online) {
+    const values = {};
+    body.querySelectorAll("[data-key]").forEach((e) => {
+      const k = e.dataset.key;
+      if (e.dataset.kind === "range") values[k] = Number(e.value);
+      else if (e.dataset.kind === "enum") values[k] = e.value;
+      else values[k] = e.checked;
+    });
+    payload.values = values;
+  }
+
+  if (command(dev.id, "update", payload)) {
+    $("editDlg").close();
+    toast("Alterações enviadas.");
+  }
+});
+
+/* ---------- Remover ---------- */
+function openRemove(dev) {
+  removingId = dev.id;
+  $("delText").textContent = "Queres mesmo remover “" + dev.name + "” da lista?";
+  $("delHint").textContent = dev.hw
+    ? "Este dispositivo está ligado ao Windows. Podes voltar a trazê-lo com “Detetar hardware”."
+    : "Podes voltar a adicioná-lo mais tarde.";
+  $("delDlg").showModal();
+}
+
+$("delForm").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  if (removingId && command(removingId, "remove")) toast("Dispositivo removido.");
+  $("delDlg").close();
+});
+
+connect();
+</script>
+</body>
+</html>

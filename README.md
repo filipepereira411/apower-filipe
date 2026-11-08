@@ -1,4 +1,3 @@
-[README.md](https://github.com/user-attachments/files/34547353/README.md)
 # ⚡ ApowerFilipe
 
 Agente local em **Node.js** para controlo remoto de periféricos: serve a interface

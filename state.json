@@ -1,0 +1,46 @@
+{
+  "devices": [],
+  "log": [
+    {
+      "t": "2026-11-08T16:46:24.732Z",
+      "msg": "Hardware real detetado: nenhum (modo simulado)"
+    },
+    {
+      "t": "2026-11-08T16:46:10.640Z",
+      "msg": "Dispositivo removido: Impressora Laser"
+    },
+    {
+      "t": "2026-11-08T16:46:08.191Z",
+      "msg": "Dispositivo removido: Webcam HD"
+    },
+    {
+      "t": "2026-11-08T16:46:06.672Z",
+      "msg": "Dispositivo removido: Monitor 27\""
+    },
+    {
+      "t": "2026-11-08T16:46:05.111Z",
+      "msg": "Dispositivo removido: Colunas Bluetooth"
+    },
+    {
+      "t": "2026-11-08T16:46:03.384Z",
+      "msg": "Dispositivo removido: Teclado Mecânico K8"
+    },
+    {
+      "t": "2026-11-08T16:46:01.168Z",
+      "msg": "Dispositivo removido: Rato Sem Fios MX"
+    },
+    {
+      "t": "2026-11-08T16:45:54.648Z",
+      "msg": "Dispositivo ligado: Impressora Laser"
+    },
+    {
+      "t": "2026-11-08T16:45:22.307Z",
+      "msg": "ApowerFilipe iniciado — 6 dispositivos encontrados"
+    }
+  ],
+  "ignored": [
+    "spk1",
+    "mon1",
+    "prn1"
+  ]
+}
