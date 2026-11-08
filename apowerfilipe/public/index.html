@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ApowerFilipe — Controlo de Periféricos</title>
+<meta name="description" content="ApowerFilipe — painel de controlo remoto de dispositivos periféricos ligado a um agente local.">
+<style>
+  :root{
+    --bg: #0a0e17;
+    --bg-2: #0f1523;
+    --panel: #121a2b;
+    --panel-2: #162033;
+    --line: rgba(255,255,255,.08);
+    --text: #e8eefc;
+    --muted: #8b9ab8;
+    --accent: #6c8cff;
+    --accent-2: #9b6cff;
+    --ok: #34d399;
+    --warn: #fbbf24;
+    --bad: #f87171;
+    --r: 16px;
+  }
+
+  *{ box-sizing: border-box; margin: 0; padding: 0; }
+
+  body{
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Inter, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body::before{
+    content:"";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(700px 400px at 0% 0%, rgba(108,140,255,.16), transparent 60%),
+      radial-gradient(700px 500px at 100% 20%, rgba(155,108,255,.12), transparent 60%);
+  }
+
+  button, input, select{ font: inherit; color: inherit; }
+
+  /* ============ Layout ============ */
+  .app{
+    display: grid;
+    grid-template-columns: 310px 1fr;
+    min-height: 100vh;
+  }
+
+  /* ============ Sidebar ============ */
+  .sidebar{
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.4rem 1rem;
+    background: linear-gradient(180deg, rgba(18,26,43,.9), rgba(10,14,23,.9));
+    border-right: 1px solid var(--line);
+    overflow-y: auto;
+  }
+
+  .brand{
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    padding: 0 .4rem .4rem;
+    font-weight: 800;
+    font-size: 1.12rem;
+    letter-spacing: -.02em;
+  }
+  .brand .mark{
+    width: 34px; height: 34px;
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    font-size: 1rem;
+    box-shadow: 0 6px 18px rgba(108,140,255,.35);
+  }
+  .brand small{
+    display: block;
+    font-size: .66rem;
+    font-weight: 600;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .net{
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .55rem .8rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    font-size: .78rem;
+    color: var(--muted);
+    background: rgba(255,255,255,.03);
+    margin: 0 .2rem;
+  }
+  .net .dot{
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--ok);
+    box-shadow: 0 0 0 3px rgba(52,211,153,.15);
+    flex: 0 0 7px;
+  }
+  .net.off .dot{
+    background: var(--bad);
+    box-shadow: 0 0 0 3px rgba(248,113,113,.15);
+  }
+  .net .txt{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .list-label{
+    font-size: .68rem;
+    text-transform: uppercase;
+    letter-spacing: .16em;
+    color: var(--muted);
+    font-weight: 700;
+    padding: 0 .5rem;
+    margin-top: .4rem;
+  }
+
+  .device-list{
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+  }
+
+  .device-item{
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    width: 100%;
+    padding: .65rem .7rem;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    transition: background .18s ease, border-color .18s ease;
+  }
+  .device-item:hover{ background: rgba(255,255,255,.04); }
+  .device-item.active{
+    background: rgba(108,140,255,.12);
+    border-color: rgba(108,140,255,.35);
+  }
+  .device-item .ico{
+    width: 34px; height: 34px;
+    flex: 0 0 34px;
+    display: grid;
+    place-items: center;
+    border-radius: 9px;
+    background: rgba(255,255,255,.05);
+    font-size: 1rem;
+  }
+  .device-item .txt{ min-width: 0; flex: 1; }
+  .device-item .name{
+    display: block;
+    font-size: .86rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .device-item .sub{
+    display: block;
+    font-size: .72rem;
+    color: var(--muted);
+  }
+  .status-dot{
+    width: 8px; height: 8px;
+    flex: 0 0 8px;
+    border-radius: 50%;
+    background: var(--bad);
+  }
+  .status-dot.on{
+    background: var(--ok);
+    box-shadow: 0 0 0 3px rgba(52,211,153,.14);
+  }
+
+  .sidebar-foot{
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: .6rem;
+    padding-top: .8rem;
+  }
+  .note{
+    font-size: .7rem;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.4;
+    padding: 0 .4rem;
+  }
+
+  /* ============ Botões ============ */
+  .btn{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    padding: .6rem 1.05rem;
+    border-radius: 11px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.05);
+    font-size: .86rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .18s ease, border-color .18s ease, transform .1s ease;
+    white-space: nowrap;
+  }
+  .btn:hover{ background: rgba(255,255,255,.09); }
+  .btn:active{ transform: translateY(1px); }
+  .btn.primary{
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 8px 22px rgba(108,140,255,.28);
+  }
+  .btn.primary:hover{ filter: brightness(1.08); }
+  .btn.danger{
+    color: #fecaca;
+    border-color: rgba(248,113,113,.35);
+    background: rgba(248,113,113,.1);
+  }
+  .btn.danger:hover{ background: rgba(248,113,113,.18); }
+  .btn.block{ width: 100%; }
+  .btn:disabled{ opacity: .55; cursor: not-allowed; }
+
+  /* ============ Main ============ */
+  .main{
+    padding: clamp(1.2rem, 3vw, 2.4rem);
+    max-width: 1180px;
+    width: 100%;
+  }
+
+  .topbar{
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+  }
+  .topbar h1{
+    font-size: clamp(1.3rem, 3vw, 1.75rem);
+    letter-spacing: -.02em;
+    line-height: 1.2;
+  }
+  .topbar .meta{
+    color: var(--muted);
+    font-size: .82rem;
+    margin-top: .3rem;
+  }
+  .topbar .actions{
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    flex-wrap: wrap;
+  }
+
+  .pill{
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .38rem .8rem;
+    border-radius: 999px;
+    font-size: .76rem;
+    font-weight: 700;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    background: rgba(255,255,255,.04);
+  }
+  .pill.on{
+    color: #a7f3d0;
+    border-color: rgba(52,211,153,.3);
+    background: rgba(52,211,153,.1);
+  }
+  .pill.off{
+    color: #fecaca;
+    border-color: rgba(248,113,113,.3);
+    background: rgba(248,113,113,.1);
+  }
+  .pill .dot{
+    width: 7px; height: 7px; border-radius: 50%;
+    background: currentColor;
+  }
+
+  /* ============ Estatísticas ============ */
+  .stats{
+    display: grid;
+    gap: .8rem;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    margin-bottom: 1.2rem;
+  }
+  .stat{
+    padding: .9rem 1rem;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: var(--panel);
+  }
+  .stat .k{
+    font-size: .68rem;
+    text-transform: uppercase;
+    letter-spacing: .14em;
+    color: var(--muted);
+    font-weight: 700;
+  }
+  .stat .v{
+    margin-top: .25rem;
+    font-size: 1.02rem;
+    font-weight: 700;
+    letter-spacing: -.01em;
+  }
+  .stat .v.good{ color: var(--ok); }
+  .stat .v.warn{ color: var(--warn); }
+  .stat .v.bad{ color: var(--bad); }
+
+  .battery{
+    margin-top: .45rem;
+    height: 6px;
+    border-radius: 99px;
+    background: rgba(255,255,255,.08);
+    overflow: hidden;
+  }
+  .battery > i{
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--ok), #6ee7b7);
+    transition: width .3s ease;
+  }
+
+  /* ============ Painel de controlo ============ */
+  .panel{
+    position: relative;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: linear-gradient(180deg, var(--panel), var(--bg-2));
+    padding: clamp(1.1rem, 3vw, 1.8rem);
+    overflow: hidden;
+  }
+  .panel h2{
+    font-size: .95rem;
+    letter-spacing: .02em;
+    margin-bottom: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+  }
+  .panel h2 span{
+    font-size: .66rem;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .controls{
+    display: grid;
+    gap: 1.15rem;
+  }
+
+  .control{
+    display: grid;
+    gap: .45rem;
+  }
+  .control .row{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .control label{ font-size: .88rem; font-weight: 600; }
+  .control .val{
+    font-size: .82rem;
+    color: var(--accent);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  input[type="range"]{
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 99px;
+    background: rgba(255,255,255,.1);
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    border: 4px solid var(--accent);
+    box-shadow: 0 0 0 4px rgba(108,140,255,.18);
+    cursor: grab;
+  }
+  input[type="range"]::-moz-range-thumb{
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: #fff;
+    border: 4px solid var(--accent);
+  }
+
+  .switch{
+    position: relative;
+    width: 46px; height: 26px;
+    flex: 0 0 46px;
+    border-radius: 99px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.08);
+    cursor: pointer;
+    transition: background .2s ease;
+  }
+  .switch::after{
+    content: "";
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #c7d2fe;
+    transition: transform .2s ease, background .2s ease;
+  }
+  .switch[aria-checked="true"]{
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    border-color: transparent;
+  }
+  .switch[aria-checked="true"]::after{
+    transform: translateX(20px);
+    background: #fff;
+  }
+
+  select{
+    width: 100%;
+    padding: .6rem .8rem;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: var(--panel-2);
+    font-size: .88rem;
+    cursor: pointer;
+  }
+  select:focus, input[type="range"]:focus-visible{
+    outline: 2px solid rgba(108,140,255,.6);
+    outline-offset: 2px;
+  }
+
+  .panel.disconnected .controls{
+    opacity: .45;
+    pointer-events: none;
+    filter: grayscale(.4);
+  }
+  .overlay{
+    position: absolute;
+    inset: 0;
+    display: none;
+    place-items: center;
+    background: rgba(10,14,23,.6);
+    backdrop-filter: blur(3px);
+    z-index: 3;
+    text-align: center;
+    padding: 1.5rem;
+  }
+  .panel.disconnected .overlay{ display: grid; }
+  .overlay .box{
+    max-width: 340px;
+    padding: 1.4rem;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--panel);
+  }
+  .overlay .big{ font-size: 1.6rem; margin-bottom: .4rem; }
+  .overlay p{ color: var(--muted); font-size: .85rem; margin-top: .35rem; }
+  .overlay code{
+    background: rgba(255,255,255,.08);
+    padding: .1rem .35rem;
+    border-radius: 5px;
+    font-size: .8rem;
+  }
+
+  /* ============ Registo ============ */
+  .log{
+    margin-top: 1.4rem;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: var(--panel);
+    padding: 1.1rem 1.2rem;
+  }
+  .log h2{
+    font-size: .72rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: .8rem;
+  }
+  .log ul{
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: .45rem;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  .log li{
+    display: flex;
+    gap: .7rem;
+    align-items: baseline;
+    font-size: .8rem;
+    color: var(--muted);
+    padding: .3rem 0;
+    border-bottom: 1px dashed rgba(255,255,255,.05);
+  }
+  .log li:last-child{ border-bottom: 0; }
+  .log time{
+    flex: 0 0 58px;
+    font-variant-numeric: tabular-nums;
+    color: rgba(139,154,184,.75);
+    font-size: .74rem;
+  }
+  .log .empty{ color: var(--muted); font-size: .82rem; }
+
+  /* ============ Toasts ============ */
+  .toasts{
+    position: fixed;
+    right: 1.1rem;
+    bottom: 1.1rem;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    max-width: min(340px, 90vw);
+  }
+  .toast{
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: .7rem .9rem;
+    border-radius: 12px;
+    border: 1px solid rgba(108,140,255,.35);
+    background: rgba(22,32,51,.95);
+    box-shadow: 0 12px 30px rgba(0,0,0,.4);
+    font-size: .84rem;
+    animation: toastIn .25s ease both;
+  }
+  .toast.out{ animation: toastOut .25s ease both; }
+  .toast.bad{ border-color: rgba(248,113,113,.45); }
+  .toast .t-ico{ font-size: 1rem; }
+  @keyframes toastIn{
+    from{ opacity: 0; transform: translateY(10px) scale(.98); }
+  }
+  @keyframes toastOut{
+    to{ opacity: 0; transform: translateY(6px) scale(.98); }
+  }
+
+  /* ============ Responsivo ============ */
+  @media (max-width: 860px){
+    .app{ grid-template-columns: 1fr; }
+    .sidebar{
+      position: static;
+      height: auto;
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .device-list{
+      flex-direction: row;
+      overflow-x: auto;
+      padding-bottom: .3rem;
+    }
+    .device-item{
+      flex: 0 0 auto;
+      width: 210px;
+    }
+    .sidebar-foot{ margin-top: .6rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ================= SIDEBAR ================= -->
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="mark">⚡</span>
+      <div>
+        ApowerFilipe
+        <small>Controlo remoto</small>
+      </div>
+    </div>
+
+    <div class="net off" id="net">
+      <span class="dot"></span>
+      <span class="txt" id="netInfo">A ligar ao agente…</span>
+    </div>
+
+    <div class="list-label">Dispositivos</div>
+    <div class="device-list" id="deviceList" role="list"></div>
+
+    <div class="sidebar-foot">
+      <button class="btn block" id="btnSync">🔄 Sincronizar tudo</button>
+      <p class="note">Agente local em Node.js · WebSocket</p>
+    </div>
+  </aside>
+
+  <!-- ================= MAIN ================= -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="devName">ApowerFilipe</h1>
+        <div class="meta" id="devMeta">A ligar ao agente local…</div>
+      </div>
+      <div class="actions">
+        <span class="pill off" id="devStatus"><span class="dot"></span> Sem ligação</span>
+        <button class="btn primary" id="btnConnect" disabled>Ligar</button>
+      </div>
+    </div>
+
+    <div class="stats" id="stats"></div>
+
+    <section class="panel disconnected" id="panel">
+      <div class="overlay" id="overlay"></div>
+      <h2 id="panelTitle">Controlos <span>—</span></h2>
+      <div class="controls" id="controls"></div>
+    </section>
+
+    <section class="log">
+      <h2>Registo de atividade</h2>
+      <ul id="logList"></ul>
+    </section>
+  </main>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ============================================================
+     Tipos de dispositivo e controlos da interface
+     ============================================================ */
+  const TYPES = {
+    mouse: {
+      icon: "🖱️",
+      label: "Rato",
+      controls: [
+        { k: "dpi", type: "range", label: "DPI / Sensibilidade", min: 400, max: 3200, step: 100, unit: " dpi" },
+        { k: "vol", type: "range", label: "Volume", min: 0, max: 100, unit: "%" },
+        { k: "profile", type: "select", label: "Perfil", options: ["Escritório", "Gaming", "Precisão"] },
+        { k: "rgb", type: "toggle", label: "Iluminação RGB" },
+        { k: "silent", type: "toggle", label: "Modo silencioso" },
+        { k: "restart", type: "button", label: "Reiniciar dispositivo" }
+      ]
+    },
+    keyboard: {
+      icon: "⌨️",
+      label: "Teclado",
+      controls: [
+        { k: "brightness", type: "range", label: "Retroiluminação", min: 0, max: 100, unit: "%" },
+        { k: "layout", type: "select", label: "Layout", options: ["ABNT2", "QWERTY", "ISO PT"] },
+        { k: "rgb", type: "toggle", label: "Efeito RGB" },
+        { k: "gameMode", type: "toggle", label: "Modo de jogo (bloquear tecla Windows)" },
+        { k: "macro", type: "button", label: "Gravar macro" }
+      ]
+    },
+    speaker: {
+      icon: "🔊",
+      label: "Colunas",
+      controls: [
+        { k: "vol", type: "range", label: "Volume", min: 0, max: 100, unit: "%" },
+        { k: "bass", type: "range", label: "Graves", min: 0, max: 100, unit: "%" },
+        { k: "treble", type: "range", label: "Agudos", min: 0, max: 100, unit: "%" },
+        { k: "eq", type: "select", label: "Equalizador", options: ["Equilibrado", "Voz", "Música", "Filmes"] },
+        { k: "mute", type: "toggle", label: "Silenciar" }
+      ]
+    },
+    printer: {
+      icon: "🖨️",
+      label: "Impressora",
+      controls: [
+        { k: "quality", type: "select", label: "Qualidade", options: ["Rascunho", "Normal", "Alta"] },
+        { k: "paper", type: "select", label: "Formato do papel", options: ["A4", "A5", "Carta"] },
+        { k: "eco", type: "toggle", label: "Modo economia" },
+        { k: "duplex", type: "toggle", label: "Frente e verso" },
+        { k: "test", type: "button", label: "Imprimir página de teste" }
+      ]
+    },
+    monitor: {
+      icon: "🖥️",
+      label: "Monitor",
+      controls: [
+        { k: "brightness", type: "range", label: "Brilho", min: 0, max: 100, unit: "%" },
+        { k: "contrast", type: "range", label: "Contraste", min: 0, max: 100, unit: "%" },
+        { k: "res", type: "select", label: "Resolução", options: ["1920×1080", "2560×1440", "3840×2160"] },
+        { k: "hdr", type: "toggle", label: "HDR" },
+        { k: "eye", type: "toggle", label: "Proteção ocular" }
+      ]
+    },
+    webcam: {
+      icon: "📷",
+      label: "Webcam",
+      controls: [
+        { k: "res", type: "select", label: "Resolução", options: ["720p", "1080p", "1440p"] },
+        { k: "fps", type: "select", label: "Fotogramas por segundo", options: ["30 fps", "60 fps"] },
+        { k: "mirror", type: "toggle", label: "Espelhar imagem" },
+        { k: "autoLight", type: "toggle", label: "Correção automática de luz" },
+        { k: "capture", type: "button", label: "Capturar imagem" }
+      ]
+    }
+  };
+
+  /* ============================================================
+     Estado do cliente (espelho do agente)
+     ============================================================ */
+  const state = { devices: [], log: [], selected: null };
+
+  let ws = null;
+  let connected = false;
+  let retry = 0;
+  let reconnectTimer = null;
+  const FILE_MODE = location.protocol === "file:";
+
+  const $ = (sel, root) => (root || document).querySelector(sel);
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+
+  function current() {
+    return state.devices.find((d) => d.id === state.selected) || state.devices[0] || null;
+  }
+
+  function toast(msg, icon, bad) {
+    const box = $("#toasts");
+    const el = document.createElement("div");
+    el.className = "toast" + (bad ? " bad" : "");
+    el.innerHTML =
+      '<span class="t-ico">' + (icon || "✔️") + "</span><span>" + esc(msg) + "</span>";
+    box.appendChild(el);
+    setTimeout(() => {
+      el.classList.add("out");
+      setTimeout(() => el.remove(), 260);
+    }, 2800);
+  }
+
+  function batteryClass(v) {
+    if (v === null || v === undefined) return "";
+    if (v <= 20) return "bad";
+    if (v <= 45) return "warn";
+    return "good";
+  }
+
+  /* ============================================================
+     WebSocket
+     ============================================================ */
+  function wsUrl() {
+    const proto = location.protocol === "https:" ? "wss:" : "ws:";
+    return proto + "//" + location.host + "/ws";
+  }
+
+  function connectWS() {
+    if (FILE_MODE) return; // sem servidor: mostra instruções no painel
+
+    let socket;
+    try {
+      socket = new WebSocket(wsUrl());
+    } catch (e) {
+      scheduleReconnect();
+      return;
+    }
+    ws = socket;
+
+    socket.addEventListener("open", () => {
+      connected = true;
+      retry = 0;
+      send({ type: "hello" });
+      renderAll();
+    });
+
+    socket.addEventListener("message", (ev) => {
+      let msg;
+      try { msg = JSON.parse(ev.data); } catch (e) { return; }
+
+      if (msg.type === "state") {
+        applyState(msg);
+      } else if (msg.type === "error" && msg.error) {
+        toast(msg.error, "⚠️", true);
+      }
+    });
+
+    socket.addEventListener("close", () => {
+      connected = false;
+      ws = null;
+      renderAll();
+      scheduleReconnect();
+    });
+
+    socket.addEventListener("error", () => {
+      try { socket.close(); } catch (e) { /* ignore */ }
+    });
+  }
+
+  function scheduleReconnect() {
+    clearTimeout(reconnectTimer);
+    const delay = Math.min(4000, 500 * Math.pow(2, Math.min(retry, 3)));
+    retry++;
+    reconnectTimer = setTimeout(connectWS, delay);
+  }
+
+  function send(obj) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(obj));
+      return true;
+    }
+    toast("Sem ligação ao agente", "🔌", true);
+    return false;
+  }
+
+  function applyState(msg) {
+    state.devices = Array.isArray(msg.devices) ? msg.devices : [];
+    state.log = Array.isArray(msg.log) ? msg.log : [];
+
+    if (state.devices.length && !state.devices.some((d) => d.id === state.selected)) {
+      state.selected = state.devices[0].id;
+    }
+
+    // Evita re-render do painel enquanto o utilizador arrasta um slider
+    const active = document.activeElement;
+    const dragging = active && active.type === "range";
+    renderAll({ skipPanel: !!dragging });
+  }
+
+  /* ============================================================
+     Render
+     ============================================================ */
+  function renderList() {
+    const list = $("#deviceList");
+    list.innerHTML = "";
+
+    if (!state.devices.length) {
+      list.innerHTML = '<div class="note" style="text-align:left">Sem dispositivos.</div>';
+      return;
+    }
+
+    state.devices.forEach((d) => {
+      const t = TYPES[d.type] || { icon: "📦", label: "Dispositivo" };
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "device-item" + (d.id === state.selected ? " active" : "");
+      btn.setAttribute("role", "listitem");
+      btn.innerHTML =
+        '<span class="ico">' + t.icon + "</span>" +
+        '<span class="txt">' +
+          '<span class="name">' + esc(d.name) + "</span>" +
+          '<span class="sub">' + esc(t.label) + " · " +
+            (d.battery !== null && d.battery !== undefined ? d.battery + "%" : "USB") +
+          "</span>" +
+        "</span>" +
+        '<span class="status-dot' + (d.online ? " on" : "") + '" title="' +
+          (d.online ? "Ligado" : "Desligado") + '"></span>';
+
+      btn.addEventListener("click", () => {
+        state.selected = d.id;
+        renderAll();
+      });
+
+      list.appendChild(btn);
+    });
+  }
+
+  function renderNet() {
+    const net = $("#net");
+    const info = $("#netInfo");
+
+    if (connected) {
+      net.classList.remove("off");
+      const on = state.devices.filter((d) => d.online).length;
+      info.textContent = "Agente ligado · " + on + "/" + state.devices.length + " ligados";
+    } else {
+      net.classList.add("off");
+      info.textContent = FILE_MODE
+        ? "Modo ficheiro · abre via http://127.0.0.1:3000"
+        : "Agente offline · a tentar ligar…";
+    }
+  }
+
+  function renderStats(d) {
+    const stats = $("#stats");
+    if (!d) { stats.innerHTML = ""; return; }
+
+    const lat = d.online && connected ? d.latency + " ms" : "—";
+    const latClass = !d.online || !connected ? "bad" : d.latency < 20 ? "good" : d.latency < 40 ? "warn" : "bad";
+
+    let batteryBlock;
+    if (d.battery === null || d.battery === undefined) {
+      batteryBlock =
+        '<div class="stat"><div class="k">Alimentação</div>' +
+        '<div class="v">USB / Rede</div></div>';
+    } else {
+      batteryBlock =
+        '<div class="stat"><div class="k">Bateria</div>' +
+        '<div class="v ' + batteryClass(d.battery) + '">' + d.battery + "%</div>" +
+        '<div class="battery"><i style="width:' + d.battery + '%"></i></div></div>';
+    }
+
+    stats.innerHTML =
+      '<div class="stat"><div class="k">Estado</div>' +
+        '<div class="v ' + (d.online ? "good" : "bad") + '">' +
+        (d.online ? "Ligado" : "Desligado") + "</div></div>" +
+      '<div class="stat"><div class="k">Latência</div>' +
+        '<div class="v ' + latClass + '">' + lat + "</div></div>" +
+      batteryBlock +
+      '<div class="stat"><div class="k">Endereço IP</div>' +
+        '<div class="v">' + esc(d.ip) + "</div></div>";
+  }
+
+  function controlHTML(c, d) {
+    const v = d.values[c.k];
+
+    if (c.type === "range") {
+      return (
+        '<div class="control" data-k="' + c.k + '">' +
+          '<div class="row">' +
+            "<label>" + esc(c.label) + "</label>" +
+            '<span class="val" data-out="' + c.k + '">' + v + (c.unit || "") + "</span>" +
+          "</div>" +
+          '<input type="range" min="' + c.min + '" max="' + c.max +
+            '" step="' + (c.step || 1) + '" value="' + v +
+            '" data-k="' + c.k + '" aria-label="' + esc(c.label) + '">' +
+        "</div>"
+      );
+    }
+
+    if (c.type === "select") {
+      const opts = c.options.map((o) =>
+        '<option value="' + esc(o) + '"' + (o === v ? " selected" : "") + ">" + esc(o) + "</option>"
+      ).join("");
+      return (
+        '<div class="control" data-k="' + c.k + '">' +
+          "<label>" + esc(c.label) + "</label>" +
+          '<select data-k="' + c.k + '" aria-label="' + esc(c.label) + '">' + opts + "</select>" +
+        "</div>"
+      );
+    }
+
+    if (c.type === "toggle") {
+      return (
+        '<div class="control">' +
+          '<div class="row">' +
+            "<label>" + esc(c.label) + "</label>" +
+            '<button type="button" class="switch" role="switch" aria-checked="' +
+              (v ? "true" : "false") + '" data-toggle="' + c.k +
+              '" aria-label="' + esc(c.label) + '"></button>' +
+          "</div>" +
+        "</div>"
+      );
+    }
+
+    if (c.type === "button") {
+      return (
+        '<div class="control">' +
+          '<button type="button" class="btn" data-action="' + c.k + '">' +
+            esc(c.label) + "</button>" +
+        "</div>"
+      );
+    }
+
+    return "";
+  }
+
+  function overlayHTML(d) {
+    if (!connected) {
+      const cmd = FILE_MODE
+        ? "Este ficheiro precisa do agente. Abre <code>http://127.0.0.1:3000</code>."
+        : "A tentar ligar ao agente local…";
+      return (
+        '<div class="box">' +
+          '<div class="big">🛰️</div>' +
+          "<strong>Agente offline</strong>" +
+          "<p>" + cmd + "</p>" +
+          (FILE_MODE
+            ? "<p>Inicia com <code>npm start</code> na pasta do projeto.</p>"
+            : "<p>Verifica se o servidor Node está a correr.</p>") +
+        "</div>"
+      );
+    }
+
+    return (
+      '<div class="box">' +
+        '<div class="big">🔌</div>' +
+        "<strong>Dispositivo desconectado</strong>" +
+        "<p>Liga o dispositivo para poderes enviar comandos.</p>" +
+        '<button class="btn primary" data-connect="' + esc(d ? d.id : "") + '" style="margin-top:.9rem">Ligar agora</button>' +
+      "</div>"
+    );
+  }
+
+  function renderPanel(d) {
+    const t = d ? (TYPES[d.type] || { label: "Dispositivo" }) : { label: "—", controls: [] };
+
+    $("#devName").textContent = d ? d.name : (connected ? "Sem dispositivos" : "ApowerFilipe");
+    $("#devMeta").textContent = d
+      ? d.model + " · " + t.label + " · " + d.ip
+      : (connected ? "Nenhum dispositivo registado." : "A ligar ao agente local…");
+
+    const pill = $("#devStatus");
+    const btn = $("#btnConnect");
+
+    if (!connected) {
+      pill.className = "pill off";
+      pill.innerHTML = '<span class="dot"></span> Sem ligação';
+      btn.textContent = "Ligar";
+      btn.className = "btn primary";
+      btn.disabled = true;
+    } else if (!d) {
+      pill.className = "pill off";
+      pill.innerHTML = '<span class="dot"></span> Sem dispositivos';
+      btn.disabled = true;
+    } else {
+      pill.className = "pill " + (d.online ? "on" : "off");
+      pill.innerHTML = '<span class="dot"></span> ' + (d.online ? "Conectado" : "Desconectado");
+      btn.textContent = d.online ? "Desligar" : "Ligar";
+      btn.className = "btn " + (d.online ? "danger" : "primary");
+      btn.disabled = false;
+    }
+
+    $("#panelTitle").innerHTML = "Controlos <span>" + esc(t.label) + "</span>";
+    $("#controls").innerHTML = d ? (t.controls || []).map((c) => controlHTML(c, d)).join("") : "";
+    $("#overlay").innerHTML = overlayHTML(d);
+
+    $("#panel").classList.toggle("disconnected", !connected || !d || !d.online);
+  }
+
+  function renderLog() {
+    const ul = $("#logList");
+    if (!state.log.length) {
+      ul.innerHTML = '<li class="empty">Sem atividade registada.</li>';
+      return;
+    }
+    ul.innerHTML = state.log.map((e) => {
+      const dt = new Date(e.t);
+      const hh = String(dt.getHours()).padStart(2, "0");
+      const mm = String(dt.getMinutes()).padStart(2, "0");
+      const ss = String(dt.getSeconds()).padStart(2, "0");
+      return '<li><time>' + hh + ":" + mm + ":" + ss + "</time><span>" + esc(e.msg) + "</span></li>";
+    }).join("");
+  }
+
+  function renderAll(opts) {
+    const d = current();
+    renderList();
+    renderNet();
+    renderStats(d);
+    if (!opts || !opts.skipPanel) renderPanel(d);
+    renderLog();
+  }
+
+  /* ============================================================
+     Comandos
+     ============================================================ */
+  function cmd(action, extra) {
+    const d = current();
+    if (!d) return false;
+    return send(Object.assign({ type: "command", deviceId: d.id, action: action }, extra || {}));
+  }
+
+  $("#controls").addEventListener("input", (e) => {
+    const input = e.target;
+    if (input.type !== "range") return;
+    const key = input.getAttribute("data-k");
+    const d = current();
+    if (!d || !key) return;
+
+    d.values[key] = Number(input.value);
+    const out = $('[data-out="' + key + '"]');
+    if (out) {
+      const c = (TYPES[d.type].controls || []).find((x) => x.k === key);
+      out.textContent = input.value + (c && c.unit ? c.unit : "");
+    }
+  });
+
+  $("#controls").addEventListener("change", (e) => {
+    const el = e.target;
+    const key = el.getAttribute("data-k");
+    if (!key) return;
+
+    const d = current();
+    if (!d) return;
+
+    if (el.tagName === "SELECT") {
+      cmd("set", { key: key, value: el.value });
+      toast("Definição aplicada: " + el.value);
+    } else if (el.type === "range") {
+      cmd("set", { key: key, value: Number(el.value) });
+    }
+  });
+
+  $("#controls").addEventListener("click", (e) => {
+    const sw = e.target.closest("[data-toggle]");
+    if (sw) {
+      const key = sw.getAttribute("data-toggle");
+      const d = current();
+      if (!d) return;
+      const next = sw.getAttribute("aria-checked") !== "true";
+      sw.setAttribute("aria-checked", next ? "true" : "false");
+      d.values[key] = next;
+      cmd("set", { key: key, value: next });
+      return;
+    }
+
+    const act = e.target.closest("[data-action]");
+    if (act) {
+      const key = act.getAttribute("data-action");
+      act.disabled = true;
+      setTimeout(() => { act.disabled = false; }, 700);
+
+      const labels = {
+        restart: ["A reiniciar…", "🔄"],
+        test: ["Página de teste enviada", "🖨️"],
+        capture: ["Imagem capturada", "📸"],
+        macro: ["A gravar macro…", "⏺️"]
+      };
+      const l = labels[key] || ["Comando enviado", "✔️"];
+      if (cmd("invoke", { key: key })) toast(l[0], l[1]);
+    }
+  });
+
+  $("#overlay").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-connect]");
+    if (!b) return;
+    const id = b.getAttribute("data-connect");
+    if (id && send({ type: "command", deviceId: id, action: "connect" })) {
+      toast("A ligar dispositivo…", "🔗");
+    }
+  });
+
+  $("#btnConnect").addEventListener("click", () => {
+    const d = current();
+    if (!d || !connected) return;
+    if (d.online) {
+      if (cmd("disconnect")) toast(d.name + " desligado", "🔌");
+    } else {
+      if (cmd("connect")) toast(d.name + " ligado", "🔗");
+    }
+  });
+
+  $("#btnSync").addEventListener("click", () => {
+    if (send({ type: "sync" })) toast("A sincronizar dispositivos…", "🔄");
+  });
+
+  /* ============================================================
+     Arranque
+     ============================================================ */
+  renderAll();
+  connectWS();
+})();
+</script>
+</body>
+</html>
